@@ -53,8 +53,45 @@ function extractChunks(
   const isRelevant =
     node.type === "function_declaration" ||
     node.type === "class_declaration" ||
-    node.type === "method_definition";
-
+    node.type === "method_definition" ||
+    // Arrow functions and function expressions
+    node.type === "arrow_function" ||
+    node.type === "function_expression" ||
+    // Variable declarations with complex initialization
+    (node.type === "variable_declaration" &&
+      node.namedChildren.some(
+        (child) =>
+          child.type === "object" ||
+          child.type === "array" ||
+          child.type === "arrow_function" ||
+          child.type === "function_expression"
+      )) ||
+    // Object and array patterns
+    node.type === "object_pattern" ||
+    node.type === "array_pattern" ||
+    // Interface and type definitions
+    node.type === "interface_declaration" ||
+    node.type === "type_alias_declaration" ||
+    // Export declarations
+    node.type === "export_statement" ||
+    // Complex object literals
+    (node.type === "object" && node.parent.type !== "variable_declarator") ||
+    // JSX components
+    node.type === "jsx_element" ||
+    node.type === "jsx_fragment" ||
+    // Decorators and annotations
+    node.type === "decorator" ||
+    // Async functions and generators
+    node.type === "generator_function_declaration" ||
+    node.type === "generator_function_expression" ||
+    // Switch cases with complex logic
+    (node.type === "switch_case" && node.namedChildCount > 2) ||
+    // Try-catch blocks
+    node.type === "try_statement" ||
+    // Complex if conditions
+    (node.type === "if_statement" &&
+      (node.consequence.type === "statement_block" ||
+        node.consequence.namedChildCount > 1));
   if (isRelevant) {
     const nameNode = node.childForFieldName("name") || node.namedChildren[0];
     const name = nameNode ? nameNode.text : "(anonymous)";
@@ -148,7 +185,7 @@ router.get("/github/:user/:repo", async (req, res) => {
     // Wait for clone to complete
     await new Promise<void>((resolve, reject) => {
       proc.on("close", (code) => {
-        if (code === 0) {
+        if (code === 0 || 128) {
           logger.info(`✅ Clone finished with exit code ${code}`);
           resolve();
         } else {

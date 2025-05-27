@@ -61,7 +61,7 @@ class ChromaService:
             print(f"❌ Error populating collection '{repo_name}': {str(e)}")
             raise
 
-    def query_collection(self, query_text, repo_name, n_results=5):
+    def query_collection(self, query_text, repo_name, n_results=50):
         """Query ChromaDB collection with text"""
         try:
             query_embedding = self.embedding_model.encode(query_text).tolist()
