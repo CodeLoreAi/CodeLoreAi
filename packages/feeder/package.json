@@ -25,7 +25,10 @@
     "multer": "^2.0.0",
     "simple-git": "^3.27.0",
     "unzip": "^0.1.11",
-    "unzipper": "^0.12.3"
+    "unzipper": "^0.12.3",
+    "tree-sitter": "^0.22.4",
+    "tree-sitter-javascript": "^0.23.1",
+    "tree-sitter-typescript": "^0.23.2"
   },
   "devDependencies": {
     "@types/compression": "^1.7.5",

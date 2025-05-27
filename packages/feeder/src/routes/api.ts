@@ -1,13 +1,103 @@
 import { spawn } from "child_process";
 import { Router } from "express";
 import { logger } from "../utils/logger";
-import unzipper from "unzipper";
-import multer from "multer";
-
 import fs from "fs";
 import path from "path";
+// import { Parser } from "tree-sitter";
+// import JavaScript from "tree-sitter-javascript";
+// import { typescript, tsx } from "tree-sitter-typescript";
+import { promisify } from "util";
 
+
+const Parser = require("tree-sitter");
+const JavaScript = require("tree-sitter-javascript");
+const { typescript, tsx } = require("tree-sitter-typescript");
 const router = Router();
+const parser = new Parser();
+
+const languageByExt = {
+  ".js": JavaScript,
+  ".jsx": JavaScript,
+  ".ts": typescript,
+  ".tsx": tsx
+};
+
+// Promisify fs functions
+const writeFile = promisify(fs.writeFile);
+const readFile = promisify(fs.readFile);
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
+
+// Recursively collect files
+async function collectFiles(dir: string, result: string[] = []) {
+  const entries = await readdir(dir);
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry);
+    const fileStat = await stat(fullPath);
+    if (fileStat.isDirectory()) {
+      await collectFiles(fullPath, result);
+    } else {
+      result.push(fullPath);
+    }
+  }
+  return result;
+}
+
+// Extract relevant chunks (functions/classes/methods)
+function extractChunks(node: any, parent: any, depth: number, chunks: any[], code: string) {
+  const isRelevant =
+    node.type === "function_declaration" ||
+    node.type === "class_declaration" ||
+    node.type === "method_definition";
+
+  if (isRelevant) {
+    const nameNode = node.childForFieldName("name") || node.namedChildren[0];
+    const name = nameNode ? nameNode.text : "(anonymous)";
+    logger.info(
+      `Extracting ${node.type} "${name}" at ${node.startPosition.row + 1}-${node.endPosition.row + 1}`
+    );
+    chunks.push({
+      id: `${node.type}@${node.startPosition.row + 1}-${node.endPosition.row + 1}`,
+      type: node.type,
+      name,
+      text: code.slice(node.startIndex, node.endIndex),
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      parentType: parent?.type ?? null,
+      childrenTypes: node.namedChildren.map((c: any) => c.type),
+      depth
+    });
+  }
+
+  for (let i = 0; i < node.namedChildCount; i++) {
+    extractChunks(node.namedChild(i), node, depth + 1, chunks, code);
+  }
+}
+
+// Process a single file and extract chunks
+async function processFile(file: string, allChunks: any[]) {
+  const ext = path.extname(file);
+  const lang = languageByExt[ext];
+  if (!lang) return;
+
+  try {
+    parser.setLanguage(lang);
+    const code = await readFile(file, "utf8");
+    const tree = parser.parse(code);
+    const chunks: any[] = [];
+
+    extractChunks(tree.rootNode, null, 0, chunks, code);
+
+    for (const chunk of chunks) {
+      chunk.filePath = path.relative(process.cwd(), file);
+      chunk.language = ext.replace(".", "");
+    }
+
+    allChunks.push(...chunks);
+  } catch (error) {
+    logger.error(`Error processing file ${file}: ${error}`);
+  }
+}
 
 router.get("/ping", (_req, res) => {
   res.json({
@@ -27,79 +117,62 @@ router.get("/github/:user/:repo", async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   }
+
   const repoUrl = `https://github.com/${user}/${repo}.git`;
   const dest = `codebases/${user}/${repo}`;
 
-  const proc = spawn("git", [
-    "clone",
-    "--depth",
-    "1",
-    "--progress",
-    repoUrl,
-    dest,
-  ]);
-
-  proc.stderr.on("data", (data) => {
-    logger.info(`🔄 ${data}`);
-  });
-
-  proc.on("close", (code) => {
-    logger.info(`✅ Clone finished with exit code ${code}`);
-    return res.json({
-      success: true,
-      message: `Training data for GitHub repository ${repo} owned by ${user}`,
-      timestamp: new Date().toISOString(),
-    });
-  });
-});
-
-const upload = multer({ dest: "uploads/" });
-
-router.post("/upload", upload.single("file"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({
-      success: false,
-      message: "No file uploaded",
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  const filePath = req.file.path;
-  const originalName = req.file.originalname;
-  const destDir = path.join("codebases", path.parse(originalName).name);
-
   try {
-    // If zip, extract; if directory, move/copy
-    if (originalName.endsWith(".zip")) {
-      await fs.promises.mkdir(destDir, { recursive: true });
-      await fs
-        .createReadStream(filePath)
-        .pipe(unzipper.Extract({ path: destDir }))
-        .promise();
-      logger.info(`✅ Extracted zip to ${destDir}`);
-    } else {
-      // Assume it's a directory archive (e.g., tar), or just move the file
-      await fs.promises.mkdir(destDir, { recursive: true });
-      await fs.promises.rename(filePath, path.join(destDir, originalName));
-      logger.info(`✅ Moved file to ${destDir}`);
-    }
+    // Clone the repository
+    const proc = spawn("git", [
+      "clone",
+      "--depth",
+      "1",
+      "--progress",
+      repoUrl,
+      dest,
+    ]);
 
-    // Cleanup uploaded file if needed
-    if (fs.existsSync(filePath)) {
-      await fs.promises.unlink(filePath);
-    }
+    proc.stderr.on("data", (data) => {
+      logger.info(`🔄 ${data}`);
+    });
+
+    // Wait for clone to complete
+    await new Promise<void>((resolve, reject) => {
+      proc.on("close", (code) => {
+        if (code === 0) {
+          logger.info(`✅ Clone finished with exit code ${code}`);
+          resolve();
+        } else {
+          reject(new Error(`Git clone failed with code ${code}`));
+        }
+      });
+    });
+
+    // Process the cloned repository
+    const codeFiles = await collectFiles(dest);
+    const allChunks: any[] = [];
+
+    // Process each file in parallel
+    await Promise.all(codeFiles.map(file => processFile(file, allChunks)));
+
+    // Save the chunks
+    const chunksPath = path.join(dest, 'chunks.json');
+    await writeFile(chunksPath, JSON.stringify(allChunks, null, 2));
 
     return res.json({
       success: true,
-      message: `Training data uploaded and extracted to ${destDir}`,
-      timestamp: new Date().toISOString(),
+      message: `Repository processed successfully. ${allChunks.length} chunks extracted.`,
+      chunksPath: chunksPath,
+      timestamp: new Date().toISOString()
     });
-  } catch (err) {
-    logger.error(`❌ Error processing upload: ${err}`);
+
+  } catch (error) {
+    logger.error(`Error processing repository: ${error}`);
     return res.status(500).json({
       success: false,
-      message: "Failed to process uploaded file",
-      timestamp: new Date().toISOString(),
+      message: "Error processing repository",
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
