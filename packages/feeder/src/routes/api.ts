@@ -43,17 +43,49 @@ async function collectFiles(dir: string, result: string[] = []) {
 }
 
 // Extract relevant chunks (functions/classes/methods)
-function extractChunks(
-  node: any,
-  parent: any,
-  depth: number,
-  chunks: any[],
-  code: string
-) {
+function extractChunks(node: any, parent: any, depth: number, chunks: any[], code: string) {
   const isRelevant =
+    // Functions and classes
     node.type === "function_declaration" ||
     node.type === "class_declaration" ||
-    node.type === "method_definition";
+    node.type === "method_definition" ||
+    // Arrow functions and function expressions
+    node.type === "arrow_function" ||
+    node.type === "function_expression" ||
+    // Variable declarations with complex initialization
+    (node.type === "variable_declaration" && 
+      node.namedChildren.some(child => 
+        child.type === "object" ||
+        child.type === "array" ||
+        child.type === "arrow_function" ||
+        child.type === "function_expression"
+      )) ||
+    // Object and array patterns
+    node.type === "object_pattern" ||
+    node.type === "array_pattern" ||
+    // Interface and type definitions
+    node.type === "interface_declaration" ||
+    node.type === "type_alias_declaration" ||
+    // Export declarations
+    node.type === "export_statement" ||
+    // Complex object literals
+    (node.type === "object" && node.parent.type !== "variable_declarator") ||
+    // JSX components
+    node.type === "jsx_element" ||
+    node.type === "jsx_fragment" ||
+    // Decorators and annotations
+    node.type === "decorator" ||
+    // Async functions and generators
+    node.type === "generator_function_declaration" ||
+    node.type === "generator_function_expression" ||
+    // Switch cases with complex logic
+    (node.type === "switch_case" && node.namedChildCount > 2) ||
+    // Try-catch blocks
+    node.type === "try_statement" ||
+    // Complex if conditions
+    (node.type === "if_statement" && 
+      (node.consequence.type === "statement_block" ||
+       node.consequence.namedChildCount > 1))
 
   if (isRelevant) {
     const nameNode = node.childForFieldName("name") || node.namedChildren[0];
@@ -78,8 +110,62 @@ function extractChunks(
     });
   }
 
+  // Add context for parent-child relationships
+  const contextualParent = findContextualParent(node)
+  if (contextualParent) {
+    chunks.push({
+      type: "context",
+      parentType: contextualParent.type,
+      childType: node.type,
+      relationship: determineRelationship(contextualParent, node),
+      scope: extractScope(node),
+      text: code.slice(contextualParent.startIndex, contextualParent.endIndex)
+    })
+  }
+
   for (let i = 0; i < node.namedChildCount; i++) {
-    extractChunks(node.namedChild(i), node, depth + 1, chunks, code);
+    extractChunks(node.namedChild(i), node, depth + 1, chunks, code)
+  }
+}
+
+// Helper functions for enhanced context
+function findContextualParent(node: any) {
+  let current = node.parent
+  while (current) {
+    if (isSignificantNode(current)) return current
+    current = current.parent
+  }
+  return null
+}
+
+function isSignificantNode(node: any) {
+  return [
+    "function_declaration",
+    "class_declaration",
+    "method_definition",
+    "interface_declaration",
+    "module",
+    "namespace"
+  ].includes(node.type)
+}
+
+function determineRelationship(parent: any, child: any) {
+  if (parent.type === "class_declaration" && child.type === "method_definition") 
+    return "class_method"
+  if (parent.type === "interface_declaration" && child.type === "method_definition")
+    return "interface_method"
+  if (parent.type === "function_declaration" && child.type === "function_declaration")
+    return "nested_function"
+  return "contained"
+}
+
+function extractScope(node: any) {
+  return {
+    variables: node.descendantsOfType("variable_declaration").map((v: any) => v.text),
+    imports: node.descendantsOfType("import_statement").map((i: any) => i.text),
+    dependencies: node.descendantsOfType("call_expression")
+      .map((c: any) => c.childForFieldName("function")?.text)
+      .filter(Boolean)
   }
 }
 
@@ -90,21 +176,30 @@ async function processFile(file: string, allChunks: any[]) {
   if (!lang) return;
 
   try {
-    parser.setLanguage(lang);
-    const code = await readFile(file, "utf8");
-    const tree = parser.parse(code);
-    const chunks: any[] = [];
+    parser.setLanguage(lang)
+    const code = await readFile(file, "utf8")
+    const tree = parser.parse(code)
+    const chunks: any[] = []
 
-    extractChunks(tree.rootNode, null, 0, chunks, code);
+    extractChunks(tree.rootNode, null, 0, chunks, code)
 
     for (const chunk of chunks) {
-      chunk.filePath = path.relative(process.cwd(), file);
-      chunk.language = ext.replace(".", "");
+      chunk.filePath = path.relative(process.cwd(), file)
+      chunk.language = ext.replace(".", "")
+      // Add file-level metadata
+      chunk.fileContext = {
+        imports: tree.rootNode.descendantsOfType('import_statement').map((imp: any) => imp.text),
+        exports: tree.rootNode.descendantsOfType('export_statement').map((exp: any) => exp.text),
+        globalScope: tree.rootNode.descendantsOfType('variable_declaration')
+          .filter((v: any) => !v.hasAncestor('function_declaration'))
+          .map((v: any) => v.text)
+      }
     }
 
-    allChunks.push(...chunks);
+    const processedChunks = processChunkRelationships(chunks)
+    allChunks.push(...processedChunks)
   } catch (error) {
-    logger.error(`Error processing file ${file}: ${error}`);
+    logger.error(`Error processing file ${file}: ${error}`)
   }
 }
 
@@ -190,3 +285,24 @@ router.get("/github/:user/:repo", async (req, res) => {
 });
 
 export default router;
+
+
+function processChunkRelationships(chunks: any[]) {
+  return chunks.map(chunk => ({
+    ...chunk,
+    relationships: {
+      // Find chunks that import this chunk
+      importedBy: chunks
+        .filter(c => c.imports.some(imp => imp.includes(chunk.name)))
+        .map(c => c.id),
+      // Find chunks that are called by this chunk
+      calledBy: chunks
+        .filter(c => c.dependencies.externalCalls.includes(chunk.name))
+        .map(c => c.id),
+      // Find parent-child relationships
+      children: chunks
+        .filter(c => c.parentType === chunk.type && c.depth > chunk.depth)
+        .map(c => c.id)
+    }
+  }))
+}
