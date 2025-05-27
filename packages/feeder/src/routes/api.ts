@@ -1,6 +1,5 @@
-import { exec, spawn } from "child_process";
+import { spawn } from "child_process";
 import { Router } from "express";
-import { simpleGit } from "simple-git";
 import { logger } from "../utils/logger";
 import fs from "fs";
 import path from "path";
@@ -109,7 +108,7 @@ router.get("/ping", (_req, res) => {
   });
 });
 
-router.get("/train/github/:user/:repo", async (req, res) => {
+router.get("/github/:user/:repo", async (req, res) => {
   const { user, repo } = req.params;
   if (!user || !repo) {
     return res.status(400).json({

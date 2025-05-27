@@ -1,0 +1,104 @@
+[
+    {
+      "id": "function_declaration@9-31",
+      "type": "function_declaration",
+      "name": "AppContent",
+      "text": "function AppContent() {\n    const [showCartModal, setShowCartModal] = useState(false);\n    const {theme} = useTheme(); // Now this works correctly\n\n    const handleShowCartModal = () => {\n        setShowCartModal(true);\n    }\n\n    return (\n        <MovieContextProvider>\n            <div className={`dark:bg-body bg-white font-[Sora] dark:text-white text-dark ${theme ==='dark'?'dark':'light'}`}>\n                {\n                    showCartModal && <CartModal onClose={() => {\n                        setShowCartModal(false)\n                    }}/>\n                }\n                <Header onShowModal={handleShowCartModal}/>\n                <Main/>\n                <Footer/>\n            </div>\n        </MovieContextProvider>\n    );\n}",
+      "startLine": 9,
+      "endLine": 31,
+      "parentType": "program",
+      "childrenTypes": [
+        "identifier",
+        "formal_parameters",
+        "statement_block"
+      ],
+      "depth": 1,
+      "filePath": "codebases/kabbo25/cine-dine/src/App.jsx",
+      "language": "jsx"
+    },
+    {
+      "id": "function_declaration@33-39",
+      "type": "function_declaration",
+      "name": "App",
+      "text": "function App() {\n    return (\n        <ThemeContextProvider>\n            <AppContent />\n        </ThemeContextProvider>\n    );\n}",
+      "startLine": 33,
+      "endLine": 39,
+      "parentType": "program",
+      "childrenTypes": [
+        "identifier",
+        "formal_parameters",
+        "statement_block"
+      ],
+      "depth": 1,
+      "filePath": "codebases/kabbo25/cine-dine/src/App.jsx",
+      "language": "jsx"
+    },
+    {
+      "id": "function_declaration@1-3",
+      "type": "function_declaration",
+      "name": "getImgUrl",
+      "text": "function getImgUrl(name) {\n    return new URL(`../../public/assets/movie-covers/${name}`, import.meta.url).href\n}",
+      "startLine": 1,
+      "endLine": 3,
+      "parentType": "program",
+      "childrenTypes": [
+        "identifier",
+        "formal_parameters",
+        "statement_block"
+      ],
+      "depth": 1,
+      "filePath": "codebases/kabbo25/cine-dine/src/utility/cine-utility.js",
+      "language": "js"
+    },
+    {
+      "id": "function_declaration@9-32",
+      "type": "function_declaration",
+      "name": "AppContent",
+      "text": "function AppContent() {\n    const [showCartModal, setShowCartModal] = useState(false);\n    const {theme} = useTheme(); // Now this works correctly\n    console.log(theme);\n    \n    const handleShowCartModal = () => {\n        setShowCartModal(true);\n    }\n    \n    return (\n        <MovieContextProvider>\n            <div className={`dark:bg-body bg-white font-[Sora] dark:text-white text-dark ${theme ==='dark'?'dark':'light'}`}>\n                {\n                    showCartModal && <CartModal onClose={() => {\n                        setShowCartModal(false)\n                    }}/>\n                }\n                <Header onShowModal={handleShowCartModal}/>\n                <Main/>\n                <Footer/>\n            </div>\n        </MovieContextProvider>\n    );\n}",
+      "startLine": 9,
+      "endLine": 32,
+      "parentType": "program",
+      "childrenTypes": [
+        "identifier",
+        "formal_parameters",
+        "statement_block"
+      ],
+      "depth": 1,
+      "filePath": "codebases/kabbo25/cine-dine/absolute/path/to/src/App.jsx",
+      "language": "jsx"
+    },
+    {
+      "id": "function_declaration@34-40",
+      "type": "function_declaration",
+      "name": "App",
+      "text": "function App() {\n    return (\n        <ThemeContextProvider>\n            <AppContent />\n        </ThemeContextProvider>\n    );\n}",
+      "startLine": 34,
+      "endLine": 40,
+      "parentType": "program",
+      "childrenTypes": [
+        "identifier",
+        "formal_parameters",
+        "statement_block"
+      ],
+      "depth": 1,
+      "filePath": "codebases/kabbo25/cine-dine/absolute/path/to/src/App.jsx",
+      "language": "jsx"
+    },
+    {
+      "id": "function_declaration@49-51",
+      "type": "function_declaration",
+      "name": "getAllMovies",
+      "text": "function getAllMovies() {\n    return data;\n}",
+      "startLine": 49,
+      "endLine": 51,
+      "parentType": "program",
+      "childrenTypes": [
+        "identifier",
+        "formal_parameters",
+        "statement_block"
+      ],
+      "depth": 1,
+      "filePath": "codebases/kabbo25/cine-dine/src/data/data.js",
+      "language": "js"
+    }
+  ]
