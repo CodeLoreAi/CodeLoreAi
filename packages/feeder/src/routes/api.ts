@@ -51,6 +51,7 @@ function extractChunks(
   code: string
 ) {
   const isRelevant =
+    // Functions and classes
     node.type === "function_declaration" ||
     node.type === "class_declaration" ||
     node.type === "method_definition" ||
@@ -115,9 +116,72 @@ function extractChunks(
     });
   }
 
+  // Add context for parent-child relationships
+  const contextualParent = findContextualParent(node);
+  if (contextualParent) {
+    chunks.push({
+      type: "context",
+      parentType: contextualParent.type,
+      childType: node.type,
+      relationship: determineRelationship(contextualParent, node),
+      scope: extractScope(node),
+      text: code.slice(contextualParent.startIndex, contextualParent.endIndex),
+    });
+  }
+
   for (let i = 0; i < node.namedChildCount; i++) {
     extractChunks(node.namedChild(i), node, depth + 1, chunks, code);
   }
+}
+
+// Helper functions for enhanced context
+function findContextualParent(node: any) {
+  let current = node.parent;
+  while (current) {
+    if (isSignificantNode(current)) return current;
+    current = current.parent;
+  }
+  return null;
+}
+
+function isSignificantNode(node: any) {
+  return [
+    "function_declaration",
+    "class_declaration",
+    "method_definition",
+    "interface_declaration",
+    "module",
+    "namespace",
+  ].includes(node.type);
+}
+
+function determineRelationship(parent: any, child: any) {
+  if (parent.type === "class_declaration" && child.type === "method_definition")
+    return "class_method";
+  if (
+    parent.type === "interface_declaration" &&
+    child.type === "method_definition"
+  )
+    return "interface_method";
+  if (
+    parent.type === "function_declaration" &&
+    child.type === "function_declaration"
+  )
+    return "nested_function";
+  return "contained";
+}
+
+function extractScope(node: any) {
+  return {
+    variables: node
+      .descendantsOfType("variable_declaration")
+      .map((v: any) => v.text),
+    imports: node.descendantsOfType("import_statement").map((i: any) => i.text),
+    dependencies: node
+      .descendantsOfType("call_expression")
+      .map((c: any) => c.childForFieldName("function")?.text)
+      .filter(Boolean),
+  };
 }
 
 // Process a single file and extract chunks
@@ -137,9 +201,23 @@ async function processFile(file: string, allChunks: any[]) {
     for (const chunk of chunks) {
       chunk.filePath = path.relative(process.cwd(), file);
       chunk.language = ext.replace(".", "");
+      // Add file-level metadata
+      chunk.fileContext = {
+        imports: tree.rootNode
+          .descendantsOfType("import_statement")
+          .map((imp: any) => imp.text),
+        exports: tree.rootNode
+          .descendantsOfType("export_statement")
+          .map((exp: any) => exp.text),
+        globalScope: tree.rootNode
+          .descendantsOfType("variable_declaration")
+          .filter((v: any) => !v.hasAncestor("function_declaration"))
+          .map((v: any) => v.text),
+      };
     }
 
-    allChunks.push(...chunks);
+    const processedChunks = processChunkRelationships(chunks);
+    allChunks.push(...processedChunks);
   } catch (error) {
     logger.error(`Error processing file ${file}: ${error}`);
   }
@@ -227,3 +305,23 @@ router.get("/github/:user/:repo", async (req, res) => {
 });
 
 export default router;
+
+function processChunkRelationships(chunks: any[]) {
+  return chunks.map((chunk) => ({
+    ...chunk,
+    relationships: {
+      // Find chunks that import this chunk
+      importedBy: chunks
+        .filter((c) => c.imports.some((imp) => imp.includes(chunk.name)))
+        .map((c) => c.id),
+      // Find chunks that are called by this chunk
+      calledBy: chunks
+        .filter((c) => c.dependencies.externalCalls.includes(chunk.name))
+        .map((c) => c.id),
+      // Find parent-child relationships
+      children: chunks
+        .filter((c) => c.parentType === chunk.type && c.depth > chunk.depth)
+        .map((c) => c.id),
+    },
+  }));
+}
