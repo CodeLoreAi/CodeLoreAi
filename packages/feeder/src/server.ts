@@ -4,6 +4,8 @@ import { logger } from "./utils/logger";
 
 dotenv.config();
 
+console.log("Path:", process.env.PATH);
+
 const PORT = process.env.PORT || 3000;
 
 const server = app.listen(PORT, () => {
