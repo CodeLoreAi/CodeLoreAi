@@ -8,7 +8,6 @@ import path from "path";
 // import { typescript, tsx } from "tree-sitter-typescript";
 import { promisify } from "util";
 
-
 const Parser = require("tree-sitter");
 const JavaScript = require("tree-sitter-javascript");
 const { typescript, tsx } = require("tree-sitter-typescript");
@@ -19,7 +18,7 @@ const languageByExt = {
   ".js": JavaScript,
   ".jsx": JavaScript,
   ".ts": typescript,
-  ".tsx": tsx
+  ".tsx": tsx,
 };
 
 // Promisify fs functions
@@ -44,7 +43,13 @@ async function collectFiles(dir: string, result: string[] = []) {
 }
 
 // Extract relevant chunks (functions/classes/methods)
-function extractChunks(node: any, parent: any, depth: number, chunks: any[], code: string) {
+function extractChunks(
+  node: any,
+  parent: any,
+  depth: number,
+  chunks: any[],
+  code: string
+) {
   const isRelevant =
     node.type === "function_declaration" ||
     node.type === "class_declaration" ||
@@ -54,10 +59,14 @@ function extractChunks(node: any, parent: any, depth: number, chunks: any[], cod
     const nameNode = node.childForFieldName("name") || node.namedChildren[0];
     const name = nameNode ? nameNode.text : "(anonymous)";
     logger.info(
-      `Extracting ${node.type} "${name}" at ${node.startPosition.row + 1}-${node.endPosition.row + 1}`
+      `Extracting ${node.type} "${name}" at ${node.startPosition.row + 1}-${
+        node.endPosition.row + 1
+      }`
     );
     chunks.push({
-      id: `${node.type}@${node.startPosition.row + 1}-${node.endPosition.row + 1}`,
+      id: `${node.type}@${node.startPosition.row + 1}-${
+        node.endPosition.row + 1
+      }`,
       type: node.type,
       name,
       text: code.slice(node.startIndex, node.endIndex),
@@ -65,7 +74,7 @@ function extractChunks(node: any, parent: any, depth: number, chunks: any[], cod
       endLine: node.endPosition.row + 1,
       parentType: parent?.type ?? null,
       childrenTypes: node.namedChildren.map((c: any) => c.type),
-      depth
+      depth,
     });
   }
 
@@ -153,26 +162,29 @@ router.get("/github/:user/:repo", async (req, res) => {
     const allChunks: any[] = [];
 
     // Process each file in parallel
-    await Promise.all(codeFiles.map(file => processFile(file, allChunks)));
+    await Promise.all(codeFiles.map((file) => processFile(file, allChunks)));
 
     // Save the chunks
-    const chunksPath = path.join(dest, 'chunks.json');
+    const chunksPath = path.join(dest, "chunks.json");
     await writeFile(chunksPath, JSON.stringify(allChunks, null, 2));
+
+    await fetch(`http://localhost:5000/embed-and-populate/${user}/${repo}`, {
+      method: "GET",
+    });
 
     return res.json({
       success: true,
       message: `Repository processed successfully. ${allChunks.length} chunks extracted.`,
       chunksPath: chunksPath,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error(`Error processing repository: ${error}`);
     return res.status(500).json({
       success: false,
       message: "Error processing repository",
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
