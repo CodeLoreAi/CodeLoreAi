@@ -6,9 +6,13 @@ class EmbeddingService:
     def __init__(self):
         self.model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
         
-    def generate_embeddings(self, input_path="chunks.json", output_path="output_local.json"):
+    def generate_embeddings(self, directory):
         """Generate embeddings from chunks with validation"""
         try:
+            print('generating embeddings')
+            input_path="../feeder/codebases"+directory + "/chunks.json"
+            output_path="output_local.json"
+            print("input path", input_path)
             input_file = Path(input_path)
             if not input_file.exists():
                 raise FileNotFoundError(f"Input file {input_path} not found")
