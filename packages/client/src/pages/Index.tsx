@@ -1,28 +1,30 @@
-
-import { useState } from 'react';
-import UploadPage from '../components/UploadPage';
-import ChatPage from '../components/ChatPage';
+import { useState } from "react";
+import UploadPage from "../features/UploadPage";
+import ChatPage from "../features/ChatPage";
 
 const Index = () => {
-  const [currentPage, setCurrentPage] = useState<'upload' | 'chat'>('upload');
+  const [currentPage, setCurrentPage] = useState<"upload" | "chat">("upload");
   const [uploadedCodebase, setUploadedCodebase] = useState<string | null>(null);
 
   const handleUploadComplete = (codebaseName: string) => {
     setUploadedCodebase(codebaseName);
-    setCurrentPage('chat');
+    setCurrentPage("chat");
   };
 
   const handleBackToUpload = () => {
-    setCurrentPage('upload');
+    setCurrentPage("upload");
     setUploadedCodebase(null);
   };
 
   return (
     <div className="min-h-screen bg-white">
-      {currentPage === 'upload' ? (
+      {currentPage === "upload" ? (
         <UploadPage onUploadComplete={handleUploadComplete} />
       ) : (
-        <ChatPage codebaseName={uploadedCodebase} onBackToUpload={handleBackToUpload} />
+        <ChatPage
+          codebaseName={uploadedCodebase}
+          onBackToUpload={handleBackToUpload}
+        />
       )}
     </div>
   );

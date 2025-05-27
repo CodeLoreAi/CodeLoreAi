@@ -30,7 +30,7 @@ app.use(compression());
 app.use(morgan(config.app.nodeEnv === "production" ? "combined" : "dev"));
 
 // Routes
-app.use("/api", apiRoutes);
+app.use("/train", apiRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
