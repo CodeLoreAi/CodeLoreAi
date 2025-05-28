@@ -60,7 +60,7 @@ function extractChunks(
     node.type === "function_expression" ||
     // Variable declarations with complex initialization
     (node.type === "variable_declaration" &&
-      node.namedChildren.some(
+      node.namedChildren?.some(
         (child) =>
           child.type === "object" ||
           child.type === "array" ||
@@ -76,7 +76,7 @@ function extractChunks(
     // Export declarations
     node.type === "export_statement" ||
     // Complex object literals
-    (node.type === "object" && node.parent.type !== "variable_declarator") ||
+    (node.type === "object" && node.parent?.type !== "variable_declarator") ||
     // JSX components
     node.type === "jsx_element" ||
     node.type === "jsx_fragment" ||
@@ -91,27 +91,27 @@ function extractChunks(
     node.type === "try_statement" ||
     // Complex if conditions
     (node.type === "if_statement" &&
-      (node.consequence.type === "statement_block" ||
-        node.consequence.namedChildCount > 1));
+      (node.consequence?.type === "statement_block" ||
+        node.consequence?.namedChildCount > 1));
   if (isRelevant) {
     const nameNode = node.childForFieldName("name") || node.namedChildren[0];
     const name = nameNode ? nameNode.text : "(anonymous)";
     logger.info(
-      `Extracting ${node.type} "${name}" at ${node.startPosition.row + 1}-${
-        node.endPosition.row + 1
+      `Extracting ${node.type} "${name}" at ${node.startPosition?.row + 1}-${
+        node.endPosition?.row + 1
       }`
     );
     chunks.push({
-      id: `${node.type}@${node.startPosition.row + 1}-${
-        node.endPosition.row + 1
+      id: `${node.type}@${node.startPosition?.row + 1}-${
+        node.endPosition?.row + 1
       }`,
       type: node.type,
       name,
       text: code.slice(node.startIndex, node.endIndex),
-      startLine: node.startPosition.row + 1,
-      endLine: node.endPosition.row + 1,
+      startLine: node.startPosition?.row + 1,
+      endLine: node.endPosition?.row + 1,
       parentType: parent?.type ?? null,
-      childrenTypes: node.namedChildren.map((c: any) => c.type),
+      childrenTypes: node.namedChildren?.map((c: any) => c.type),
       depth,
     });
   }
