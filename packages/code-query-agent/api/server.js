@@ -24,8 +24,8 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
+    res.json({
+        status: 'healthy',
         timestamp: new Date().toISOString(),
         agent: 'Code Query Agent',
         version: '1.0.0'
@@ -211,7 +211,7 @@ app.post('/multi-search', async (req, res) => {
 
         // Enhance message with multi-repo context
         const enhancedMessage = `Search across these repositories [${repositories.join(', ')}]: ${message}`;
-        
+
         const result = await codeAgent.processQuery(threadId, enhancedMessage);
 
         if (result.success) {
@@ -254,20 +254,20 @@ app.use((err, req, res, next) => {
     });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        error: 'Endpoint not found',
-        availableEndpoints: [
-            'POST /:owner/:repo - Query specific repository',
-            'POST /query - General code query',
-            'POST /multi-search - Multi-repository search',
-            'GET /thread/:threadId - Get thread history',
-            'GET /health - Health check'
-        ]
-    });
-});
+// // 404 handler
+// app.use('*', (req, res) => {
+//     res.status(404).json({
+//         success: false,
+//         error: 'Endpoint not found',
+//         availableEndpoints: [
+//             'POST /:owner/:repo - Query specific repository',
+//             'POST /query - General code query',
+//             'POST /multi-search - Multi-repository search',
+//             'GET /thread/:threadId - Get thread history',
+//             'GET /health - Health check'
+//         ]
+//     });
+// });
 
 // Start server
 app.listen(port, () => {
