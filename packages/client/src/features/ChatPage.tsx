@@ -208,7 +208,7 @@ const ChatPage = () => {
     if (!inputMessage.trim() || !currentSessionId) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: uuid(),
       type: "user",
       content: inputMessage,
       timestamp: new Date(),
@@ -229,6 +229,76 @@ const ChatPage = () => {
     setInputMessage("");
 
     // await simulateResponse(inputMessage);
+
+    try {
+      setIsTyping(true);
+      const response = await fetch(`http://localhost:3030/${user}/${repo}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          threadId: currentSessionId,
+          message: inputMessage,
+        }),
+      });
+      const data = await response.json();
+
+      setSessions((prevSessions) =>
+        prevSessions.map((session) =>
+          session.id === currentSessionId
+            ? {
+                ...session,
+                lastMessage: new Date(),
+                messages: [
+                  ...session.messages,
+                  {
+                    type: "assistant",
+                    id: uuid(),
+                    content: data.response,
+                    timestamp: new Date(),
+                  },
+                ],
+                title:
+                  session.messages.length === 1
+                    ? inputMessage.slice(0, 30) + "..."
+                    : session.title,
+              }
+            : session
+        )
+      );
+
+      //  setSessions((prevSessions) =>
+      //       prevSessions.map((session) => {
+      //         if (session.id === currentSessionId) {
+      //           const updatedMessages = session.messages.map((msg) => {
+      //             if (msg.id === thinkingMessageId) {
+      //               return {
+      //                 ...msg,
+      //                 content: response.content,
+      //                 thoughtProcess: response.thoughtProcess,
+      //                 isThinking: false,
+      //               };
+      //             }
+      //             return msg;
+      //           });
+      //           return {
+      //             ...session,
+      //             messages: updatedMessages,
+      //             lastMessage: new Date(),
+      //             title:
+      //               session.messages.length === 1
+      //                 ? userMessage.slice(0, 30) + "..."
+      //                 : session.title,
+      //           };
+      //         }
+      //         return session;
+      //       })
+      //     );
+    } catch (err) {
+      // Optionally handle error
+      setIsTyping(false);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const toggleThoughtProcess = (messageId: string) => {
