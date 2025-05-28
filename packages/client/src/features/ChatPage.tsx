@@ -265,34 +265,6 @@ const ChatPage = () => {
             : session
         )
       );
-
-      //  setSessions((prevSessions) =>
-      //       prevSessions.map((session) => {
-      //         if (session.id === currentSessionId) {
-      //           const updatedMessages = session.messages.map((msg) => {
-      //             if (msg.id === thinkingMessageId) {
-      //               return {
-      //                 ...msg,
-      //                 content: response.content,
-      //                 thoughtProcess: response.thoughtProcess,
-      //                 isThinking: false,
-      //               };
-      //             }
-      //             return msg;
-      //           });
-      //           return {
-      //             ...session,
-      //             messages: updatedMessages,
-      //             lastMessage: new Date(),
-      //             title:
-      //               session.messages.length === 1
-      //                 ? userMessage.slice(0, 30) + "..."
-      //                 : session.title,
-      //           };
-      //         }
-      //         return session;
-      //       })
-      //     );
     } catch (err) {
       // Optionally handle error
       setIsTyping(false);
