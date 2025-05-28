@@ -9,7 +9,9 @@ import FileUploader from "../components/FileUploader";
 import { useNavigate } from "react-router-dom";
 
 const UploadPage = () => {
-  const [githubUrl, setGithubUrl] = useState("");
+  const [githubUrl, setGithubUrl] = useState(
+    "https://github.com/jamil314/jamil-todo-app"
+  );
   const [toastMessage, setToastMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -22,7 +24,10 @@ const UploadPage = () => {
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev < 95) {
-          return Math.min(100, prev + 0.5 + (100 - prev) * 0.05).toPrecision(2);
+          return (
+            Math.round(Math.min(100, prev + 0.5 + (100 - prev) * 0.05) * 100) /
+            100
+          );
         }
         clearInterval(interval);
         return prev;
