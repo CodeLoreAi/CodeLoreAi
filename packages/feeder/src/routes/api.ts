@@ -323,7 +323,7 @@ router.get("/github/:user/:repo", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error processing repository",
-      error: error.message,
+      error: error?.message,
       timestamp: new Date().toISOString(),
     });
   }
