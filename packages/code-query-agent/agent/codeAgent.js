@@ -11,7 +11,6 @@ import {
 import dotenv from "dotenv";
 
 dotenv.config();
-console.log(process.env.OPENROUTER_API_KEY);
 // 🤖 Model Configuration
 const model = new ChatOpenAI({
   openAIApiKey: process.env.OPENROUTER_API_KEY,
