@@ -304,6 +304,28 @@ router.get("/github/:user/:repo", async (req, res) => {
   }
 });
 
+router.get("/list", async (req, res) => {
+  const root = "./codebases";
+  const owners = await readdir(root);
+  const repos = owners.reduce<{ owner: string; repo: string }[]>(
+    (acc, owner) => {
+      const ownerPath = path.join(root, owner);
+      if (fs.statSync(ownerPath).isDirectory()) {
+        const repos = fs.readdirSync(ownerPath);
+        repos.forEach((repo) => {
+          const repoPath = path.join(ownerPath, repo);
+          if (fs.statSync(repoPath).isDirectory()) {
+            acc.push({ owner, repo });
+          }
+        });
+      }
+      return acc;
+    },
+    []
+  );
+  res.json({ success: true, repos });
+});
+
 export default router;
 
 function processChunkRelationships(chunks: any[]) {

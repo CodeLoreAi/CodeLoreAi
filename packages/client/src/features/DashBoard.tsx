@@ -3,14 +3,28 @@ import { Upload } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-// Example codebases data
-const codebases = [
-  { id: 1, name: "React/Frontend", description: "React TypeScript app" },
-  { id: 2, name: "React/Backend", description: "Node.js Express API" },
-  { id: 3, name: "React/Docs", description: "Documentation and guides" },
-];
-
 const DashBoard: React.FC = () => {
+  const [codebases, setCodebases] = React.useState<
+    { id: string; name: string; description: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    console.log("fetching");
+
+    fetch("http://localhost:3000/train/list")
+      .then((res) => res.json())
+      .then((data) =>
+        setCodebases(
+          data.repos.map(({ owner, repo }) => ({
+            id: `${owner}_${repo}`,
+            name: `${owner}/${repo}`,
+            description: `${repo} is a repository by ${owner}`,
+          }))
+        )
+      )
+      .catch((err) => console.error("Failed to fetch codebases:", err));
+  }, []);
+
   const navigate = useNavigate();
 
   return (

@@ -22,7 +22,7 @@ const UploadPage = () => {
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
         if (prev < 95) {
-          return Math.min(100, prev + 2 + (100 - prev) * 0.05);
+          return Math.min(100, prev + 0.5 + (100 - prev) * 0.05).toPrecision(2);
         }
         clearInterval(interval);
         return prev;
