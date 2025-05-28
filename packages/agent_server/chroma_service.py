@@ -13,7 +13,7 @@ class ChromaService:
         self.embedding_service = EmbeddingService()
         
 
-    def populate_chroma(self, user, repo, force_refresh=False):
+    def populate_chroma(self, user, repo):
 
         print('in populate_chroma', user, repo)
 
@@ -61,7 +61,7 @@ class ChromaService:
             print(f"❌ Error populating collection '{repo_name}': {str(e)}")
             raise
 
-    def query_collection(self, query_text, repo_name, n_results=50):
+    def query_collection(self, query_text, repo_name, n_results=10):
         """Query ChromaDB collection with text"""
         try:
             query_embedding = self.embedding_model.encode(query_text).tolist()
@@ -75,7 +75,7 @@ class ChromaService:
             return {
                 "documents": results["documents"][0],
                 "metadatas": results["metadatas"][0],
-                "distances": results["distances"][0]
+                "distances": results["distances"][0],
             }
 
         except Exception as e:

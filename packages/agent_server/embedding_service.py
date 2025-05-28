@@ -26,25 +26,50 @@ class EmbeddingService:
             results = []
             for chunk in chunks:
                 if not all(k in chunk for k in ["text", "type", "startLine", "endLine"]):
-                    raise ValueError("Invalid chunk format")
-                    
-                snippet = chunk["text"][:1000]
-                embedding = self.model.encode(snippet).tolist()
-                results.append({
+                    continue
+
+
+                embedding = self.model.encode(chunk["text"]).tolist()
+                # If chunk["fileContext"]["imports"] is an array of objects, concatenate them into a single string
+                imports = chunk["fileContext"]["imports"]
+                if isinstance(imports, list):
+                    # Concatenate string representations of each import object
+                    imports_concat = " ".join([str(imp) for imp in imports])
+                else:
+                    imports_concat = str(imports)
+
+                exports = chunk["fileContext"]["exports"]
+                if isinstance(exports, list):
+                    # Concatenate string representations of each import object
+                    exports_concat = " ".join([str(imp) for imp in exports])
+                else:
+                    exports_concat = str(exports)
+
+                to_append = {
                     "metadata": {
                         "type": chunk["type"],
                         "startLine": chunk["startLine"],
-                        "endLine": chunk["endLine"]
+                        "endLine": chunk["endLine"],
+                        "imports": imports_concat,
+                        "exports": exports_concat,
                     },
+                    "filePath": chunk["filePath"],
+                    "startLine": chunk["startLine"],
+                    "endLine": chunk["endLine"],
                     "text": chunk["text"],
                     "embedding": embedding
-                })
+                }
+                results.append(to_append)
                 print(f"✅ Embedded {chunk['type']} ({chunk['startLine']}–{chunk['endLine']})")
 
+            # print('======>', result)
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, ensure_ascii=False)
             
             print(f"✅ Saved {len(results)} embeddings to {output_path}")
+
+            # print('results is: ', results)
+
             return results
             
         except Exception as e:

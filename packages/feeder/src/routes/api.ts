@@ -152,6 +152,31 @@ function isSignificantNode(node: any) {
     "interface_declaration",
     "module",
     "namespace",
+    "function_declaration",
+    "class_declaration",
+    "method_definition",
+    "arrow_function",
+    "function_expression",
+    "variable_declaration",
+    "object",
+    "array",
+    "arrow_function",
+    "function_expression",
+    "object_pattern",
+    "array_pattern",
+    "interface_declaration",
+    "type_alias_declaration",
+    "export_statement",
+    "object",
+    "jsx_element",
+    "jsx_fragment",
+    "decorator",
+    "generator_function_declaration",
+    "generator_function_expression",
+    "switch_case",
+    "try_statement",
+    "if_statement",
+    "statement_block",
   ].includes(node.type);
 }
 
@@ -334,11 +359,11 @@ function processChunkRelationships(chunks: any[]) {
     relationships: {
       // Find chunks that import this chunk
       importedBy: chunks
-        .filter((c) => c.imports.some((imp) => imp.includes(chunk.name)))
+        .filter((c) => c.imports?.some((imp) => imp.includes(chunk.name)))
         .map((c) => c.id),
       // Find chunks that are called by this chunk
       calledBy: chunks
-        .filter((c) => c.dependencies.externalCalls.includes(chunk.name))
+        .filter((c) => c.dependencies?.externalCalls.includes(chunk.name))
         .map((c) => c.id),
       // Find parent-child relationships
       children: chunks

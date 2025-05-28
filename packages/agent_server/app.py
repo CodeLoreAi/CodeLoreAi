@@ -27,13 +27,14 @@ def embed_and_populate(user, repo):
         directory = user + "_" + repo
         print('directory: ', directory)
 
-        force = request.args.get('force', 'false').lower() == 'true'
-        chroma_service.populate_chroma(user, repo, force_refresh=force)
+        # force = request.args.get('force', 'false').lower() == 'true'
+        chroma_service.populate_chroma(user, repo)
         return jsonify({
             "status": "success",
             "count": chroma_service.collection.count()
         })
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 
