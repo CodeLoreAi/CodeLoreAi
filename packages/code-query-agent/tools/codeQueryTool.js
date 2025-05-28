@@ -8,7 +8,7 @@ export const codeQueryTool = tool(
     );
 
     try {
-      const apiUrl = `http://localhost:5001/query/${owner}/${repo}`;
+      const apiUrl = `http://localhost:5000/query/${owner}/${repo}`;
       const requestBody = {
         query,
         limit: Math.min(limit, 50), // Cap at 50 for performance
@@ -148,7 +148,7 @@ export const codeQueryTool = tool(
           repository: `${owner}/${repo}`,
           timestamp: new Date().toISOString(),
           troubleshooting: {
-            suggestion: "Check if the API server is running on localhost:5001",
+            suggestion: "Check if the API server is running on localhost:5000",
             commonCauses: [
               "API server not running",
               "Network connectivity issues",
